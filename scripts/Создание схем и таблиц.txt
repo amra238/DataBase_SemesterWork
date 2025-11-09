@@ -1,0 +1,149 @@
+CREATE TABLESPACE ts_main LOCATION 'C:\\DataBase\\archiveTableSpace';
+CREATE TABLESPACE ts_archive LOCATION 'C:\\DataBase\\fastTableSpace';
+
+CREATE SCHEMA core;
+CREATE SCHEMA operations;
+CREATE SCHEMA promo;
+
+-- 1. Города
+CREATE TABLE core.City (
+    Id SERIAL PRIMARY KEY,
+    CityName VARCHAR(100) NOT NULL,
+    Region VARCHAR(100),
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. Категории товаров
+CREATE TABLE core.ProductCategory (
+    Id SERIAL PRIMARY KEY,
+    CategoryName VARCHAR(100) NOT NULL UNIQUE,
+    Description TEXT,
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Магазины
+CREATE TABLE core.Store (
+    Id SERIAL PRIMARY KEY,
+    CityId INTEGER NOT NULL REFERENCES core.City(Id),
+    Address VARCHAR(200) NOT NULL,
+    Phone VARCHAR(20) CHECK (Phone ~ '^\+7\d{10}$'),
+    Email VARCHAR(100),
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Клиенты (БОЛЕЕ 1000 СТРОК)
+CREATE TABLE core.Customer (
+    Id SERIAL PRIMARY KEY,
+    FirstName VARCHAR(100) NOT NULL CHECK (FirstName ~ '^[A-Za-zА-Яа-яЁё\s-]+$'),
+    LastName VARCHAR(100) NOT NULL CHECK (LastName ~ '^[A-Za-zА-Яа-яЁё\s-]+$'),
+    PhoneNumber VARCHAR(20) NOT NULL UNIQUE CHECK (PhoneNumber ~ '^\+7\d{10}$'),
+    Email VARCHAR(100),
+    DiscountCard VARCHAR(50),
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. Товары (БОЛЕЕ 1000 СТРОК)
+CREATE TABLE core.Product (
+    Id SERIAL PRIMARY KEY,
+    CategoryId INTEGER NOT NULL REFERENCES core.ProductCategory(Id),
+    ProductName VARCHAR(50) NOT NULL,
+    Price DECIMAL(10,2) CHECK (Price > 0),
+    Barcode VARCHAR(50) UNIQUE,
+    IsActive BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+--  СХЕМА OPERATIONS
+
+-- 6. Сотрудники
+CREATE TABLE operations.Employee (
+    Id SERIAL PRIMARY KEY,
+    StoreId INTEGER NOT NULL REFERENCES core.Store(Id),
+    FirstName VARCHAR(100) NOT NULL CHECK (FirstName ~ '^[A-Za-zА-Яа-яЁё\s-]+$'),
+    LastName VARCHAR(100) NOT NULL CHECK (LastName ~ '^[A-Za-zА-Яа-яЁё\s-]+$'),
+    Position VARCHAR(100) NOT NULL,
+    PhoneNumber VARCHAR(20) CHECK (PhoneNumber ~ '^\+7\d{10}$'),
+    Email VARCHAR(100),
+    HireDate TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    Salary DECIMAL(10,2) CHECK (Salary > 0),
+    IsActive BOOLEAN DEFAULT TRUE
+);
+
+-- 7. Курьеры
+CREATE TABLE operations.Courier (
+    Id SERIAL PRIMARY KEY,
+    FirstName VARCHAR(50) NOT NULL CHECK (FirstName ~ '^[A-Za-zА-Яа-яЁё\s-]+$'),
+    LastName VARCHAR(50) NOT NULL CHECK (LastName ~ '^[A-Za-zА-Яа-яЁё\s-]+$'),
+    PhoneNumber VARCHAR(20) NOT NULL UNIQUE CHECK (PhoneNumber ~ '^\+7\d{10}$'),
+    VehicleType VARCHAR(50) CHECK (VehicleType IN ('Велосипед', 'Мотоцикл', 'Автомобиль', 'Пеший')),
+    IsActive BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. Заказы (БОЛЕЕ 1000 СТРОК)
+CREATE TABLE operations.Order (
+    Id SERIAL PRIMARY KEY,
+    CustomerId INTEGER NOT NULL REFERENCES core.Customer(Id),
+    StoreId INTEGER NOT NULL REFERENCES core.Store(Id),
+    OrderDate TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    TotalAmount DECIMAL(10,2) CHECK (TotalAmount >= 0),
+    Status VARCHAR(50) DEFAULT 'Создан' CHECK (Status IN ('Создан', 'Оплачен', 'В обработке', 'Передан курьеру', 'Доставлен', 'Отменен')),
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. Товары в заказах (БОЛЕЕ 3000 СТРОК)
+CREATE TABLE operations.OrderProduct (
+    OrderId INTEGER NOT NULL REFERENCES operations.Order(Id),
+    ProductId INTEGER NOT NULL REFERENCES core.Product(Id),
+    Quantity INTEGER NOT NULL CHECK (Quantity > 0),
+    Price DECIMAL(10,2) NOT NULL CHECK (Price >= 0),
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (OrderId, ProductId)
+);
+
+-- 10. Доставки
+CREATE TABLE operations.Delivery (
+    Id SERIAL PRIMARY KEY,
+    OrderId INTEGER NOT NULL UNIQUE REFERENCES operations.Order(Id),
+    CourierId INTEGER NOT NULL REFERENCES operations.Courier(Id),
+    DeliveryDate TIMESTAMPTZ,
+    Status VARCHAR(50) DEFAULT 'Создана' CHECK (Status IN ('Создана', 'В пути', 'Доставлена', 'Отменена')),
+    Address VARCHAR(100) NOT NULL,
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 11. Остатки на складах (БОЛЕЕ 2000 СТРОК)
+CREATE TABLE operations.StockBalance (
+    Id SERIAL PRIMARY KEY,
+    StoreId INTEGER NOT NULL REFERENCES core.Store(Id),
+    ProductId INTEGER NOT NULL REFERENCES core.Product(Id),
+    Quantity INTEGER NOT NULL CHECK (Quantity >= 0),
+    LastUpdate TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(StoreId, ProductId)
+);
+
+--ТАБЛИЦЫ В СХЕМЕ PROMO
+
+-- 12. Акции
+CREATE TABLE promo.Promotion (
+    Id SERIAL PRIMARY KEY,
+    PromotionName VARCHAR(200) NOT NULL,
+    StartDate TIMESTAMPTZ NOT NULL,
+    EndDate TIMESTAMPTZ NOT NULL,
+    DiscountPercent DECIMAL(5,2) CHECK (DiscountPercent BETWEEN 0 AND 100),
+    IsActive BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CHECK (EndDate > StartDate)
+);
+
+-- 13. Товары по акциям
+CREATE TABLE promo.ProductPromotion (
+    ProductId INTEGER NOT NULL REFERENCES core.Product(Id),
+    PromotionId INTEGER NOT NULL REFERENCES promo.Promotion(Id),
+    ActualPrice DECIMAL(10,2) CHECK (ActualPrice >= 0),
+    StartDate TIMESTAMPTZ,
+    EndDate TIMESTAMPTZ,
+    CreatedAt TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ProductId, PromotionId),
+    CHECK (EndDate > StartDate)
+);

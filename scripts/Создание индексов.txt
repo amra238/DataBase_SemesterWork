@@ -1,0 +1,20 @@
+-- Core индексы
+CREATE INDEX idx_core_store_city ON core.Store(CityId);
+CREATE INDEX idx_core_product_category ON core.Product(CategoryId);
+CREATE INDEX idx_core_product_barcode ON core.Product(Barcode);
+CREATE INDEX idx_core_customer_phone ON core.Customer(PhoneNumber);
+
+-- Operations индексы  
+CREATE INDEX idx_operations_order_customer ON operations.Order(CustomerId);
+CREATE INDEX idx_operations_order_store ON operations.Order(StoreId);
+CREATE INDEX idx_operations_order_date ON operations.Order(OrderDate);
+CREATE INDEX idx_operations_orderproduct_order ON operations.OrderProduct(OrderId);
+CREATE INDEX idx_operations_orderproduct_product ON operations.OrderProduct(ProductId);
+CREATE INDEX idx_operations_delivery_order ON operations.Delivery(OrderId);
+CREATE INDEX idx_operations_delivery_courier ON operations.Delivery(CourierId);
+CREATE INDEX idx_operations_stockbalance_store_product ON operations.StockBalance(StoreId, ProductId);
+
+-- Promo индексы
+CREATE INDEX idx_promo_promotion_dates ON promo.Promotion(StartDate, EndDate);
+CREATE INDEX idx_promo_productpromotion_product ON promo.ProductPromotion(ProductId);
+CREATE INDEX idx_promo_productpromotion_promotion ON promo.ProductPromotion(PromotionId);

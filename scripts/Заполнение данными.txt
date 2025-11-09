@@ -1,0 +1,190 @@
+-- 1. ЗАПОЛНЯЕМ ГОРОДА
+INSERT INTO core.City (CityName, Region)
+SELECT 
+    city_names.name,
+    regions.region
+FROM 
+    (VALUES 
+        ('Москва'), ('Санкт-Петербург'), ('Новосибирск'), ('Екатеринбург'), ('Казань'),
+        ('Нижний Новгород'), ('Челябинск'), ('Самара'), ('Омск'), ('Ростов-на-Дону'),
+        ('Уфа'), ('Красноярск'), ('Воронеж'), ('Пермь'), ('Волгоград'),
+        ('Краснодар'), ('Саратов'), ('Тюмень'), ('Тольятти'), ('Ижевск')
+    ) AS city_names(name)
+CROSS JOIN 
+    (VALUES 
+        ('Центральный'), ('Северо-Западный'), ('Сибирский'), ('Уральский'), ('Приволжский')
+    ) AS regions(region)
+LIMIT 50;
+
+-- 2. КАТЕГОРИИ ТОВАРОВ
+INSERT INTO core.ProductCategory (CategoryName, Description)
+SELECT 
+    categories.name,
+    'Описание категории ' || categories.name
+FROM 
+    (VALUES 
+        ('Молочные продукты'), ('Хлеб и выпечка'), ('Овощи'), ('Фрукты'), ('Мясо'),
+        ('Рыба'), ('Бакалея'), ('Напитки'), ('Кондитерские изделия'), ('Замороженные продукты'),
+        ('Консервы'), ('Чай и кофе'), ('Снеки'), ('Детское питание'), ('Косметика'),
+        ('Бытовая химия'), ('Хозтовары')
+    ) AS categories(name);
+
+-- 3. МАГАЗИНЫ (100 магазинов)
+INSERT INTO core.Store (CityId, Address, Phone, Email)
+SELECT 
+    (random() * 49 + 1)::int,
+    'ул. ' || 
+    (ARRAY['Ленина', 'Мира', 'Советская', 'Центральная', 'Молодежная', 
+           'Школьная', 'Садовая', 'Лесная', 'Речная', 'Набережная'])[(random() * 9 + 1)::int] 
+    || ', ' || (random() * 100 + 1)::int,
+    '+7' || lpad((9000000000 + (i * 123) % 1000000000)::text, 10, '0'),
+    'store' || i || '@pyaterochka.ru'
+FROM generate_series(1, 100) AS i;
+
+-- 4. КЛИЕНТЫ 
+INSERT INTO core.Customer (FirstName, LastName, PhoneNumber, Email, DiscountCard)
+SELECT 
+    (ARRAY['Иван', 'Алексей', 'Сергей', 'Дмитрий', 'Андрей', 'Михаил', 'Александр',
+           'Мария', 'Анна', 'Елена', 'Ольга', 'Наталья', 'Ирина', 'Светлана'])[(random() * 13 + 1)::int],
+    (ARRAY['Иванов', 'Петров', 'Сидоров', 'Кузнецов', 'Попов', 'Смирнов', 'Васильев',
+           'Федоров', 'Морозов', 'Новиков', 'Волков', 'Соловьев', 'Лебедев'])[(random() * 12 + 1)::int],
+    '+7' || lpad((9000000000 + (i * 12345) % 1000000000)::text, 10, '0'),
+    'client' || i || '@mail.ru',
+    CASE WHEN random() > 0.3 THEN 'CARD_' || lpad(i::text, 8, '0') ELSE NULL END
+FROM generate_series(1, 1500) AS i;
+
+-- 5. ТОВАРЫ (1200 товаров - БОЛЕЕ 1000)
+INSERT INTO core.Product (CategoryId, ProductName, Price, Barcode, IsActive)
+SELECT 
+    (random() * 16 + 1)::int,
+    CASE (random() * 6)::int
+        WHEN 0 THEN 'Молоко ' || (ARRAY['Простоквашино', 'Домик в деревне', 'ВкусВилл'])[(random() * 2 + 1)::int]
+        WHEN 1 THEN 'Хлеб ' || (ARRAY['Бородинский', 'Нарезной', 'Дарницкий'])[(random() * 2 + 1)::int]
+        WHEN 2 THEN (ARRAY['Помидоры', 'Огурцы', 'Картофель', 'Морковь'])[(random() * 3 + 1)::int]
+        WHEN 3 THEN (ARRAY['Яблоки', 'Бананы', 'Апельсины', 'Груши'])[(random() * 3 + 1)::int]
+        WHEN 4 THEN (ARRAY['Свинина', 'Говядина', 'Курица', 'Индейка'])[(random() * 3 + 1)::int]
+        ELSE 'Товар ' || i
+    END || ' ' || (random() * 100 + 1)::int,
+    (random() * 1990 + 10)::decimal(10,2),
+    '46' || lpad((i + 100000000)::text, 9, '0'),
+    random() > 0.1
+FROM generate_series(1, 1200) AS i;
+
+-- 6. СОТРУДНИКИ (300 сотрудников)
+INSERT INTO operations.Employee (StoreId, FirstName, LastName, Position, PhoneNumber, Email, Salary)
+SELECT 
+    (random() * 99 + 1)::int,
+    (ARRAY['Александр', 'Максим', 'Артем', 'Владимир', 'Павел', 'Кирилл', 'Никита',
+           'Екатерина', 'Марина', 'Юлия', 'Татьяна', 'Людмила'])[(random() * 11 + 1)::int],
+    (ARRAY['Орлов', 'Лебедев', 'Соколов', 'Козлов', 'Егоров', 'Павлов', 'Семенов',
+           'Григорьев', 'Титов', 'Марков'])[(random() * 9 + 1)::int],
+    (ARRAY['Кассир', 'Продавец', 'Мерчендайзер', 'Администратор', 'Грузчик'])[(random() * 4 + 1)::int],
+    '+7' || lpad((9100000000 + (i * 54321) % 1000000000)::text, 10, '0'),
+    'employee' || i || '@pyaterochka.ru',
+    (random() * 50000 + 30000)::decimal(10,2)
+FROM generate_series(1, 300) AS i;
+
+-- 7. КУРЬЕРЫ (80 курьеров)
+INSERT INTO operations.Courier (FirstName, LastName, PhoneNumber, VehicleType)
+SELECT 
+    (ARRAY['Александр', 'Максим', 'Артем', 'Владимир', 'Павел', 'Кирилл', 'Никита'])[(random() * 6 + 1)::int],
+    (ARRAY['Орлов', 'Лебедев', 'Соколов', 'Козлов', 'Егоров', 'Павлов', 'Семенов'])[(random() * 6 + 1)::int],
+    '+7' || lpad((9200000000 + (i * 12345) % 1000000000)::text, 10, '0'),
+    (ARRAY['Велосипед', 'Мотоцикл', 'Автомобиль', 'Пеший'])[(random() * 3 + 1)::int]
+FROM generate_series(1, 80) AS i;
+
+-- 8. ЗАКАЗЫ (2000 заказов - БОЛЕЕ 1000)
+INSERT INTO operations.Order (CustomerId, StoreId, OrderDate, TotalAmount, Status)
+SELECT 
+    (random() * 1499 + 1)::int,
+    (random() * 99 + 1)::int,
+    NOW() - ((random() * 365)::int || ' days')::interval,
+    (random() * 5000 + 100)::decimal(10,2),
+    (ARRAY['Создан', 'Оплачен', 'В обработке', 'Передан курьеру', 'Доставлен', 'Отменен'])[
+        CASE 
+            WHEN random() < 0.7 THEN 4 
+            WHEN random() < 0.8 THEN 3 
+            ELSE (random() * 3 + 1)::int
+        END
+    ]
+FROM generate_series(1, 2000) AS i;
+
+-- 9. ТОВАРЫ В ЗАКАЗАХ (6000 строк - БОЛЕЕ 3000)
+INSERT INTO operations.OrderProduct (OrderId, ProductId, Quantity, Price)
+SELECT 
+    o.id as OrderId,
+    p.id as ProductId,
+    (random() * 9 + 1)::int as Quantity,
+    ROUND((p.price * (0.8 + random() * 0.4))::numeric, 2) as Price
+FROM 
+    operations.Order o
+CROSS JOIN LATERAL (
+    SELECT id, price 
+    FROM core.Product 
+    WHERE IsActive = true
+    ORDER BY random() 
+    LIMIT (random() * 4 + 1)::int
+) p
+WHERE o.id <= 2000;
+
+-- 10. ДОСТАВКИ (1400 доставок)
+INSERT INTO operations.Delivery (OrderId, CourierId, DeliveryDate, Status, Address)
+SELECT 
+    o.id as OrderId,
+    (random() * 79 + 1)::int as CourierId,
+    o.OrderDate + ((random() * 5 + 1)::int || ' hours')::interval,
+    CASE 
+        WHEN o.Status = 'Доставлен' THEN 'Доставлена'
+        WHEN o.Status = 'Передан курьеру' THEN 'В пути'
+        ELSE 'Создана'
+    END,
+    (SELECT Address FROM core.Store WHERE Id = o.StoreId)
+FROM 
+    operations.Order o
+WHERE random() < 0.7 AND o.Status != 'Отменен';
+
+-- 11. ОСТАТКИ НА СКЛАДАХ (3000 строк - БОЛЕЕ 2000)
+INSERT INTO operations.StockBalance (StoreId, ProductId, Quantity, LastUpdate)
+SELECT 
+    s.id as StoreId,
+    p.id as ProductId,
+    (random() * 200)::int as Quantity,
+    NOW() - ((random() * 7)::int || ' days')::interval
+FROM 
+    core.Store s
+CROSS JOIN core.Product p
+WHERE random() < 0.4 AND p.IsActive = true;
+
+-- 12. АКЦИИ (25 акций)
+INSERT INTO promo.Promotion (PromotionName, StartDate, EndDate, DiscountPercent, IsActive)
+SELECT 
+    'Акция "' || 
+    (ARRAY['Летняя распродажа', 'Осенние скидки', 'Зимний карнавал', 'Весеннее обновление',
+           'Выгодная неделя', 'Спецпредложение', 'Товар дня', 'Суперцена'])[(random() * 7 + 1)::int] 
+    || '"',
+    NOW() - ((random() * 180)::int || ' days')::interval,
+    NOW() + ((random() * 30)::int || ' days')::interval,
+    (random() * 45 + 5)::decimal(5,2),
+    random() > 0.3
+FROM generate_series(1, 25) AS i;
+
+-- 13. ТОВАРЫ ПО АКЦИЯМ (400 связей)
+INSERT INTO promo.ProductPromotion (ProductId, PromotionId, ActualPrice, StartDate, EndDate)
+SELECT 
+    p.id as ProductId,
+    pr.id as PromotionId,
+    ROUND((p.price * (1 - pr.DiscountPercent/100))::numeric, 2) as ActualPrice,
+    pr.StartDate,
+    pr.EndDate
+FROM 
+    core.Product p
+CROSS JOIN promo.Promotion pr
+WHERE random() < 0.15 AND p.IsActive = true AND pr.IsActive = true;
+
+-- ОБНОВЛЯЕМ СУММЫ В ЗАКАЗАХ НА ОСНОВЕ РЕАЛЬНЫХ ДАННЫХ
+UPDATE operations.Order o
+SET TotalAmount = (
+    SELECT COALESCE(SUM(op.Quantity * op.Price), 0)
+    FROM operations.OrderProduct op
+    WHERE op.OrderId = o.Id
+);
